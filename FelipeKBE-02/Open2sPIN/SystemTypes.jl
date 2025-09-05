@@ -119,7 +119,7 @@ function Base.getindex(G::AntiHermitianGreenFunction, t1::Int, t2::Int)
         return G.ev[t1][end - t1 + t2]
     else
         # Take conjugate transpose and negate
-        return -adjoint(transmute(G.ev[t2][end - t2 + t1], G.perm))
+        return -conj(transmute(G.ev[t2][end - t2 + t1], G.perm))
     end
 end
 

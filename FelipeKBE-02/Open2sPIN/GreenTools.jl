@@ -154,47 +154,47 @@ end
 
 
 function initialize_GF(n::Int, nσ::Int)
+    state = [0.0,0.0]
+    gG0 = -1.0im * (I - diagm(state))
+    gL0 = 1.0im * diagm(state)
+    gk0 = (gG0 + gL0)
+    gs0 = (gG0 - gL0)
 
-    N = n*nσ
-
-    gk0 = -1.0im * (I - diagm(ones(N)))
-    gs0 = 1.0im * diagm(ones(N))
-
-    gk0 = reshape(gk0, 4,4,:)
-    gs0 = reshape(gs0, 4,4,:)
-    
-
-    return gk0, gs0
+    # Create (4,4,n) arrays where each layer is the same as the (4,4) result
+    #gk0_full = Array{ComplexF64}(undef, nσ, nσ, n, n)
+    gk0_full = zeros(ComplexF64, nσ, nσ,n, n)
+    #gs0_full = Array{ComplexF64}(undef, nσ, nσ, n, n)
+    gs0_full = zeros(ComplexF64, nσ, nσ,n, n)
+    for i in 1:n
+        gk0_full[:,:,i,i] .= gk0
+        gs0_full[:,:,i,i] .= gs0
+    end
+    return gk0_full, gs0_full
 end
 
 
-function create_history0(times, γ, γc, βL, βR, μL, μR, n, nσ; dt::Real=0.1) 
+function create_history0(times,γ, γc, βL, βR, μL, μR, n, nσ,a,b; dt::Real) 
 
     gk0, gs0 = initialize_GF(n, nσ)
     # Wrap into GreenFunction containers with first row
-    gk = SymmetricGreenFunction(gk0, 1)            # row 1 with gk[1,1]
-    gs = AntisymmetricGreenFunction(gs0, 1)   # row 1 with gs[1,1]
+    gk = AntiHermitianGreenFunction(gk0, 0)            # row 1 with gk[1,1]
+    gs = AntiHermitianGreenFunction(gs0, 0)   # row 1 with gs[1,1]
 
-    
-    hist_Σk = Vector{Vector{NumOrArray}}()
-    hist_Σs = Vector{Vector{NumOrArray}}()
+    time = collect(a:dt:b+1)
 
-    for t1i in 1:lastindex(times)
-        new_Σk = Vector{NumOrArray}(undef, t1i+1)
-        new_Σs = Vector{NumOrArray}(undef, t1i+1)
+    newsk, newss = compute_Σ0(γ, γc, βL, βR, μL, μR, time[1], time[1], n)
+    Σk = AntiHermitianGreenFunction(newsk, 1)
+    Σs = AntiHermitianGreenFunction(newss, 1)
 
+    for t1i in 2:(length(time))
+        new_Σk = Vector{NumOrArray}(undef, t1i)
+        new_Σs = Vector{NumOrArray}(undef, t1i)
         for t2i in 1:t1i
-            newsk, newss = compute_Σ0(γ, γc, βL, βR, μL, μR, t1i*dt, t2i*dt, n)
-            new_Σk[t2i+1] = newsk
-            new_Σs[t2i+1] = newss
+            new_Σk[t2i], new_Σs[t2i] = compute_Σ0(γ, γc, βL, βR, μL, μR, time[t1i], time[t2i], n)
         end
-
-        push!(hist_Σk, new_Σk)
-        push!(hist_Σs, new_Σs)
+        push!(Σk, new_Σk)
+        push!(Σs, new_Σs)
     end
-
-    Σk = AntiHermitianGreenFunction(hist_Σk,1)
-    Σs = AntiHermitianGreenFunction(hist_Σs,1)
 
     hist = SystemHistory(
         gk, gs,

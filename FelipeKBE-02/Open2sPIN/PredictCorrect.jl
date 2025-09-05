@@ -7,18 +7,19 @@ provided, evolution includes effect of bosonic environment.
 """
 # Only spins
 
-function evolve_pc0!(hist::SystemHistory, new_times, sp::SpinParams, n::Int, traj::SVector{3,Float64}, Jsc::Real, t_hop::Real)
+function evolve_pc0!(hist::SystemHistory, new_times, n::Int, traj::AbstractVector{<:SVector{3,Float64}}, Jsc::Real, t_hop::Real)
     
     tstep = new_times[1]
     
     # This array will be reused to hold the Hamiltonian tensor
-    ham = Array{ComplexF64}(undef, 4,4,n)
-    
+    ham = zeros(ComplexF64, 2, 2, n, n)
+
     for t1 = 1:lastindex(new_times)
+        println("Current time-step for t is $t1")
         if t1%10==0 println("Current time-step for t is $t1"); flush(stdout) end
         
         # Compute Hamiltonian
-        compute_hamiltonian!(ham; traj = traj[t1], Jsc=1.0, t_hop=0.5, n=n)
+        compute_hamiltonian!(ham; traj = traj[t1], Jsc=Jsc, t_hop=t_hop, n=n)
         
         # ---------------------------------------------------------------------------
         # Predict gk and gs
@@ -30,21 +31,40 @@ function evolve_pc0!(hist::SystemHistory, new_times, sp::SpinParams, n::Int, tra
             dkv, dsv = rhs_vertical(hist, ham, t1, t2, tstep)
             ∂gk_v[t2] = dkv
             ∂gs_v[t2] = dsv
+
+            ####################################
+            if any(isnan, ∂gk_v[t2])
+                error("NaN detected in ∂gk_v at t1=$t1, t2=$t2")
+            end
+            if any(isnan, ∂gs_v[t2])
+                error("NaN detected in ∂gs_v at t1=$t1, t2=$t2")
+            end
+            ##################################
         end
-        
+
+        #∂gk_d = rhs_diag(∂gk_v[t1])
         ∂gk_d = rhs_diag(hist, ham, t1, tstep)
-        
+
         new_gk = Vector{NumOrArray}(undef, t1+1)
         new_gs = Vector{NumOrArray}(undef, t1+1)
-        
+
         for t2 = 1:t1
             new_gk[t2] = hist.gk[t1,t2] + tstep*∂gk_v[t2]
             new_gs[t2] = hist.gs[t1,t2] + tstep*∂gs_v[t2]
+
+            ################################
+            if any(isnan, new_gk[t2])
+                error("NaN detected in new_gk at t1=$t1, t2=$t2")
+            end
+            if any(isnan, new_gs[t2])
+                error("NaN detected in new_gs at t1=$t1, t2=$t2")
+            end
+            #################################
         end
 
         new_gk[t1+1] = hist.gk[t1,t1] + tstep*∂gk_d
         new_gs[t1+1] = hist.gs[1,1]
-                
+
         push!(hist.gk, new_gk)
         push!(hist.gs, new_gs)
         
@@ -52,7 +72,7 @@ function evolve_pc0!(hist::SystemHistory, new_times, sp::SpinParams, n::Int, tra
         # Start of the correction phase
         
         for rep = 1:1
-            compute_hamiltonian!(ham, hist, sp, t1+1)
+            compute_hamiltonian!(ham; traj = traj[t1+1], Jsc=Jsc, t_hop=t_hop, n=n)
 
             ∂gk_v1 = Vector{NumOrArray}(undef, t1)
             ∂gs_v1 = Vector{NumOrArray}(undef, t1)
@@ -60,20 +80,43 @@ function evolve_pc0!(hist::SystemHistory, new_times, sp::SpinParams, n::Int, tra
                 dkv1, dsv1 = rhs_vertical(hist, ham, t1+1, t2, tstep)
                 ∂gk_v1[t2] = dkv1
                 ∂gs_v1[t2] = dsv1
+
+                ####################################
+                if any(isnan, ∂gk_v1[t2])
+                error("NaN detected in ∂gk_v1 at t1=$t1, t2=$t2")
+                end
+                if any(isnan, ∂gs_v1[t2])
+                    error("NaN detected in ∂gs_v1 at t1=$t1, t2=$t2")
+                end
+            ##########################################
             end
 
-            ∂gk_d1 = rhs_diag(hist, ham, t1+1, tstep)
+            
+
+            #∂gk_d1 = rhs_diag(∂gk_v1[t1])
+            ∂gk_d1 = rhs_diag(hist, ham, t1, tstep)
 
             for t2=1:t1
                 hist.gk[t1+1,t2] = hist.gk[t1,t2] + 0.5*tstep*(∂gk_v[t2] + ∂gk_v1[t2])
-                hist.gs[t1+1,t2] = hist.gs[t1,t2] + 0.5*tstep*(∂gs_v[t2] + ∂gs_v1[t2]);
+                hist.gk[t1+1,t2] = hist.gs[t1,t2] + 0.5*tstep*(∂gs_v[t2] + ∂gs_v1[t2]);
+
+                #################################
+                if any(isnan, hist.gk[t1+1,t2])
+                error("NaN detected in gk at t1=$t1, t2=$t2")
+                end
+                if any(isnan, hist.gs[t1+1,t2])
+                    error("NaN detected in gs at t1=$t1, t2=$t2")
+                end
+                ################################
+
             end
+
 
             hist.gk[t1+1,t1+1] = hist.gk[t1,t1] + 0.5*tstep*(∂gk_d + ∂gk_d1)
 
         end
     end
-    append!(hist.times, new_times)
+    #append!(hist.times, new_times)
 end
 
 
