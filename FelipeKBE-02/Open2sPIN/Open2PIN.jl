@@ -264,7 +264,13 @@ function rhs_vertical(hist::SystemHistory, hamiltonian, t1, t2, h)
     
     # Integration using trapezoid method.
     
-    dk .+= -1im * (trapz(list, 1, t1, h) )  
+    dk .+= -1im * trapz(list, 1, t1, h) 
+    # open("debug_tullio.txt", "a") do io
+    #     println(io, "dk ( t1=$t1): size=", size(dk))
+    #     for aa in axes(dk,1), bb in axes(dk,2), ii in axes(dk,3), jj in axes(dk,4)
+    #         println(io, "dk[", aa, ",", bb, ",", ii, ",", jj, "] = ", dk[aa,bb,ii,jj])
+    #     end
+    # end
     ####################################
     if any(isnan, dk)
         error("NaN detected in dk at t1=$t1, t2=$t2, step 2")
@@ -329,10 +335,10 @@ function rhs_diag(hist::SystemHistory, hamiltonian, t1, h)
         x = list[k]
         f1 = func1[k]
         f2 = func2[k]
-        @tullio x[a,b,i,j] = -1im*f1[a,d,i]*f2[d,b,i,j]
+        @tullio x[a,b,i,j] = f1[a,d,i]*f2[d,b,i,j]
     end
     
-    dk_ver .+= trapz(list, 1, t1, h)    
+    dk_ver .+= -1im*trapz(list, 1, t1, h)    
     
     func1 = hist.Σk[t1,:] 
     func2 = hist.gs[:,t1]
@@ -341,10 +347,10 @@ function rhs_diag(hist::SystemHistory, hamiltonian, t1, h)
         x = list[k]
         f1 = func1[k]
         f2 = func2[k]
-        @tullio x[a,b,i,j] = 1im*f1[a,d,i]*f2[d,b,i,j]
+        @tullio x[a,b,i,j] = f1[a,d,i]*f2[d,b,i,j]
     end
         
-    dk_ver .+= trapz(list, 1, t1, h)
+    dk_ver .+= 1im*trapz(list, 1, t1, h)
     
     # func1 = hist.gk[t1,:] 
     # func2 = hist.Σs[:,t1]

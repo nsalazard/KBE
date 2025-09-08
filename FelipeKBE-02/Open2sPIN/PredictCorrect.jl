@@ -16,7 +16,7 @@ function evolve_pc0!(hist::SystemHistory, new_times, n::Int, traj::AbstractVecto
 
     for t1 = 1:lastindex(new_times)
         println("Current time-step for t is $t1")
-        if t1%10==0 println("Current time-step for t is $t1"); flush(stdout) end
+        #if t1%10==0 println("Current time-step for t is $t1"); flush(stdout) end
         
         # Compute Hamiltonian
         compute_hamiltonian!(ham; traj = traj[t1], Jsc=Jsc, t_hop=t_hop, n=n)
@@ -74,8 +74,8 @@ function evolve_pc0!(hist::SystemHistory, new_times, n::Int, traj::AbstractVecto
         for rep = 1:1
             compute_hamiltonian!(ham; traj = traj[t1+1], Jsc=Jsc, t_hop=t_hop, n=n)
 
-            ∂gk_v1 = Vector{NumOrArray}(undef, t1)
-            ∂gs_v1 = Vector{NumOrArray}(undef, t1)
+            ∂gk_v1 = Vector{NumOrArray}(undef, t1+1)
+            ∂gs_v1 = Vector{NumOrArray}(undef, t1+1)
             for t2 = 1:t1
                 dkv1, dsv1 = rhs_vertical(hist, ham, t1+1, t2, tstep)
                 ∂gk_v1[t2] = dkv1
@@ -94,11 +94,11 @@ function evolve_pc0!(hist::SystemHistory, new_times, n::Int, traj::AbstractVecto
             
 
             #∂gk_d1 = rhs_diag(∂gk_v1[t1])
-            ∂gk_d1 = rhs_diag(hist, ham, t1, tstep)
+            ∂gk_d1 = rhs_diag(hist, ham, t1+1, tstep)
 
             for t2=1:t1
                 hist.gk[t1+1,t2] = hist.gk[t1,t2] + 0.5*tstep*(∂gk_v[t2] + ∂gk_v1[t2])
-                hist.gk[t1+1,t2] = hist.gs[t1,t2] + 0.5*tstep*(∂gs_v[t2] + ∂gs_v1[t2]);
+                hist.gs[t1+1,t2] = hist.gs[t1,t2] + 0.5*tstep*(∂gs_v[t2] + ∂gs_v1[t2]);
 
                 #################################
                 if any(isnan, hist.gk[t1+1,t2])
@@ -119,6 +119,9 @@ function evolve_pc0!(hist::SystemHistory, new_times, n::Int, traj::AbstractVecto
     #append!(hist.times, new_times)
 end
 
+
+# ----------------------------------------------------------------------------------
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 
 function evolve_pc!(hist::SystemHistory, new_times, sp::SpinParams)
