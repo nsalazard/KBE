@@ -93,7 +93,7 @@ function evolve_pc0!(hist::SystemHistory, new_times, n::Int, traj::AbstractVecto
 
             
 
-            #∂gk_d1 = rhs_diag(∂gk_v1[t1])
+            #∂gk_d1 = rhs_diag(∂gk_v1[t1+1])
             ∂gk_d1 = rhs_diag(hist, ham, t1+1, tstep)
 
             for t2=1:t1

@@ -284,7 +284,7 @@ function rhs_vertical(hist::SystemHistory, hamiltonian, t1, t2, h)
         x = list[k]
         f1 = func1[k]
         f2 = func2[k]
-        @tullio x[a,b,i,j] := f1[a,d,i]*f2[d,b,i,j]
+        @tullio x[a,b,i,j] = f1[a,d,i]*f2[d,b,i,j]
     end
         
     dk .+= 1im*trapz(list, 1, t2, h)
@@ -302,7 +302,7 @@ function rhs_vertical(hist::SystemHistory, hamiltonian, t1, t2, h)
         x = list[k]
         f1 = func1[k]
         f2 = func2[k]
-        @tullio x[a,b,i,j] := f1[a,d,i]*f2[d,b,i,j]
+        @tullio x[a,b,i,j] = f1[a,d,i]*f2[d,b,i,j]
     end
         
     ds .+= -1im * (trapz(list, t2, t1, h))     #NEW
@@ -323,22 +323,29 @@ end
 
 "Compute RHS of differential equation for diagonal tstep of gk"
 function rhs_diag(hist::SystemHistory, hamiltonian, t1, h)
-    @tullio dk_ver[a,b,i,j] := -im*hamiltonian[a,d,i,k]*hist.gk[t1,t1][d,b,k,j]
-    #@tullio dk_hor[a,b,i,j] :=  conj(-im*hist.gs[t1,t1][a,d,i,k]*hamiltonian[d,b,k,j])
     
+    @tullio dk_ver[a,b,i,j] := -im*hamiltonian[a,d,i,k]*hist.gk[t1,t1][d,b,k,j]
+
     func1 = hist.Σs[t1,:] 
     func2 = hist.gk[:,t1]
-        
+
+    # A list that will contain the elementwise product of the two functions is
+    # allocated.
     list = [zeros(ComplexF64, size(dk_ver)) for i=1:length(func2)]
     
     for k=1:length(list)
         x = list[k]
-        f1 = func1[k]
-        f2 = func2[k]
+        f1 = func1[k]  #3D
+        f2 = func2[k]  #4D
         @tullio x[a,b,i,j] = f1[a,d,i]*f2[d,b,i,j]
     end
     
-    dk_ver .+= -1im*trapz(list, 1, t1, h)    
+    # Integration using trapezoid method.
+    dk_ver .+= -1im * trapz(list, 1, t1, h) 
+
+    if any(isnan, dk_ver)
+        error("NaN detected in dk at t1=$t1, t1=$t1, step 2")
+    end
     
     func1 = hist.Σk[t1,:] 
     func2 = hist.gs[:,t1]
@@ -349,9 +356,9 @@ function rhs_diag(hist::SystemHistory, hamiltonian, t1, h)
         f2 = func2[k]
         @tullio x[a,b,i,j] = f1[a,d,i]*f2[d,b,i,j]
     end
-        
+
     dk_ver .+= 1im*trapz(list, 1, t1, h)
-    
+
     # func1 = hist.gk[t1,:] 
     # func2 = hist.Σs[:,t1]
         
