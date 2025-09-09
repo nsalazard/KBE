@@ -10,7 +10,6 @@ using StaticArrays
 using LinearAlgebra
 using BenchmarkTools
 using QuadGK
-import PyPlot as plt
 
 
 ###############
@@ -19,7 +18,7 @@ import PyPlot as plt
 ω        = 2.0 * pi / 10.0   # frequency of the trajectory
 dt       = 0.1
 t_start  = 0.1
-Nt       = 120
+Nt       = 20
 tilt_deg = 15
 n        = 2
 nσ       = 2
@@ -29,8 +28,8 @@ nσ       = 2
 Jsc      = 0.1
 t_hop    = 1.0
 
-file_spin = "density_spin_120.txt"
-file_occ  = "occupation_vs_time_120.txt"
+file_spin = "density_spin_20.txt"
+file_occ  = "occupation_vs_time_20.txt"
 
 ###############
 # 3. Trajectory & History
