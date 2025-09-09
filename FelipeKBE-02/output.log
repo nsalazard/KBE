@@ -1,0 +1,22 @@
+nohup: ignoring input
+ERROR: LoadError: ArgumentError: Package TransmuteDims not found in current path.
+- Run `import Pkg; Pkg.add("TransmuteDims")` to install the TransmuteDims package.
+Stacktrace:
+ [1] macro expansion
+   @ ./loading.jl:2296 [inlined]
+ [2] macro expansion
+   @ ./lock.jl:273 [inlined]
+ [3] __require(into::Module, mod::Symbol)
+   @ Base ./loading.jl:2271
+ [4] #invoke_in_world#3
+   @ ./essentials.jl:1089 [inlined]
+ [5] invoke_in_world
+   @ ./essentials.jl:1086 [inlined]
+ [6] require(into::Module, mod::Symbol)
+   @ Base ./loading.jl:2260
+ [7] include(fname::String)
+   @ Main ./sysimg.jl:38
+ [8] top-level scope
+   @ ~/KBE/FelipeKBE-02/Open2sPIN_test.jl:4
+in expression starting at /home/nssd/KBE/FelipeKBE-02/Open2sPIN/Open2PIN.jl:1
+in expression starting at /home/nssd/KBE/FelipeKBE-02/Open2sPIN_test.jl:4
