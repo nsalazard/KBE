@@ -173,7 +173,7 @@ function initialize_GF(n::Int, nσ::Int)
 end
 
 
-function create_history0(times,γ, γc, βL, βR, μL, μR, n, nσ,a,b; dt::Real) 
+function create_history0(times,γ, γc, βL, βR, μL, μR, n, nσ,a,b,ti; dt::Real) 
 
     gk0, gs0 = initialize_GF(n, nσ)
     # Wrap into GreenFunction containers with first row
@@ -182,7 +182,7 @@ function create_history0(times,γ, γc, βL, βR, μL, μR, n, nσ,a,b; dt::Real
 
     time = collect(a:dt:b+1)
 
-    newsk, newss = compute_Σ0(γ, γc, βL, βR, μL, μR, time[1], time[1], n)
+    newsk, newss = compute_Σ0(γ, γc, βL, βR, μL, μR, time[1], time[1], ti, n)
     Σk = AntiHermitianGreenFunction(newsk, 1)
     Σs = AntiHermitianGreenFunction(newss, 1)
 
@@ -190,7 +190,7 @@ function create_history0(times,γ, γc, βL, βR, μL, μR, n, nσ,a,b; dt::Real
         new_Σk = Vector{NumOrArray}(undef, t1i)
         new_Σs = Vector{NumOrArray}(undef, t1i)
         for t2i in 1:t1i
-            new_Σk[t2i], new_Σs[t2i] = compute_Σ0(γ, γc, βL, βR, μL, μR, time[t1i], time[t2i], n)
+            new_Σk[t2i], new_Σs[t2i] = compute_Σ0(γ, γc, βL, βR, μL, μR, time[t1i], time[t2i], ti, n)
         end
         push!(Σk, new_Σk)
         push!(Σs, new_Σs)

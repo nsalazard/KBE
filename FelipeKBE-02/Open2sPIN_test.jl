@@ -27,6 +27,7 @@ nσ       = 2
 μL, μR   = 0.0, 0.0
 Jsc      = 0.1
 t_hop    = 1.0
+ti       = 40
 
 file_spin = "density_spin_120.txt"
 file_occ  = "occupation_vs_time_120.txt"
@@ -38,7 +39,7 @@ traj  = sample_trajectory(ω=ω, dt=dt, a=t_start, b=Nt, tilt_deg=tilt_deg)
 times = collect(t_start:dt:Nt)
 println("Times: ", size(times))
 
-hist = create_history0(times, γ, γc, βL, βR, μL, μR, n, nσ, t_start, Nt; dt=dt)
+hist = create_history0(times, γ, γc, βL, βR, μL, μR, n, nσ, t_start, Nt, ti; dt=dt)
 
 @time evolve_pc0!(hist, times, n, traj, Jsc, t_hop)
 

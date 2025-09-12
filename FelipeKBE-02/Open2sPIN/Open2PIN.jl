@@ -70,8 +70,8 @@ Return an array of spin unit vectors for times t in [a, b] with step dt.
 function sample_trajectory(; ω::Real, dt::Real=0.1, a::Real=0.0, b::Real=1.0, tilt_deg::Real=10)
     ts = a:dt:b+1
     θ = deg2rad(tilt_deg)         # polar angle
-    traj = [SVector(sin(θ) * cos(rem(ω*t,2π)),
-                    sin(θ) * sin(rem(ω*t,2π)),
+    traj = [SVector(sin(θ) * cos(ω*t),
+                    sin(θ) * sin(ω*t),
                     cos(θ)) for t in ts]
     return traj
 end
@@ -137,7 +137,7 @@ function compute_hamiltonian!(ham; traj::SVector{3,Float64}, Jsc::Real, t_hop::R
         0 -t_hop]
 
     # base Hamiltonian (4x4)
-    H = Jsc * (traj[1]*σx +
+    H = -Jsc * (traj[1]*σx +
                traj[2]*σy +
                traj[3]*σz) 
 
@@ -389,21 +389,29 @@ function rhs_diag(hist::SystemHistory, hamiltonian, t1, h)
 end
 
 
-function Γ(ϵ; γ=1.0, γc=1.0)
+function Γ(ϵ, t1,t2,ti; γ=1.0, γc=1.0)
+    stepp(t; ti = ti) = t < ti ? sin((pi/2)*t/ti)^2 : 1.0
     if abs(ϵ) <= 2γ
-        return (γc^2/γ^2) * sqrt(4γ^2 - ϵ^2)
+        return (stepp(t1;ti=ti)*stepp(t2;ti=ti)/γ^2) * sqrt(4γ^2 - ϵ^2)
     else
         return 0.0
     end
 end
-function compute_Σ0(γ, γc, βL, βR, μL, μR, t1, t2, n)  
+function compute_Σ0(γ, γc, βL, βR, μL, μR, t1, t2, ti, n)  
+
+    if t1 < ti
+        γc = sin((pi/2)*t1/ti)^2
+    else
+        γc = 1.0
+    end
+
     a, b = -2γ, 2γ
     Σs_0 = zeros(ComplexF64, 2, 2, n)
     Σk_0 = zeros(ComplexF64, 2, 2, n)
 
     Δt = t1 - t2
     # Σk (Left lead)
-    fX(ϵ) = -im * Γ(ϵ;γ,γc) * exp(-im * ϵ * Δt) * (1 / (2π))
+    fX(ϵ) = -im * Γ(ϵ, t1, t2, ti;γ,γc) * exp(-im * ϵ * Δt) * (1 / (2π))
 
     Integral, _ = quadgk(fX, a, b; rtol=1e-8, atol=1e-10)
     Σs_0[1,1,1] = Integral
@@ -417,7 +425,7 @@ function compute_Σ0(γ, γc, βL, βR, μL, μR, t1, t2, n)
     Σs_0[2,2,2] = Integral
 
     # Σs (Left lead)
-    fX3(ϵ) = im * Γ(ϵ;γ,γc) * (-1 + 2/(1 + exp(βL * (ϵ - μL)))) * exp(-im * ϵ * Δt) / (2π)
+    fX3(ϵ) = im * Γ(ϵ, t1, t2, ti;γ,γc) * (-1 + 2/(1 + exp(βL * (ϵ - μL)))) * exp(-im * ϵ * Δt) / (2π)
 
     IntegralSL, _ = quadgk(fX3, a, b; rtol=1e-8, atol=1e-10)
     Σk_0[1, 1, 1] = IntegralSL
@@ -425,7 +433,7 @@ function compute_Σ0(γ, γc, βL, βR, μL, μR, t1, t2, n)
 
     # Σs (Right lead)
 
-    fX4(ϵ) = im  * Γ(ϵ;γ,γc) * (-1 + 2/(1 + exp(βR * (ϵ - μR)))) * exp(-im * ϵ * Δt) / (2π)
+    fX4(ϵ) = im  * Γ(ϵ, t1, t2, ti;γ,γc) * (-1 + 2/(1 + exp(βR * (ϵ - μR)))) * exp(-im * ϵ * Δt) / (2π)
 
     IntegralSR, _ = quadgk(fX4, a, b; rtol=1e-8, atol=1e-10)
     Σk_0[1, 1, 2] = IntegralSR
